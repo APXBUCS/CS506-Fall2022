@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 
 class Node:
     def __init__(self, attr, vote):
@@ -51,7 +52,10 @@ def get_prediction(node, example):
         return node.vote
     else:
         # your code here
-        return
+        if example[node.attribute] == 0:
+            return get_prediction(node.right, example)
+        else:
+            return get_prediction(node.left, example)
 
 
 class SimpleDecisionTree:
@@ -68,34 +72,49 @@ class SimpleDecisionTree:
 
 
     def get_target_name(self, data):
-        return data.dtype.names[-1]
+        return 'grade'
 
 
     def gini_split(self, data, attr):
-        # compute the gini of the split on attr
-        pass
+        freq_1 = sum(data[attr]) / len(data[attr])
+        frequencies = [ freq_1, 1 - freq_1 ]
+        return 1 - sum(map(lambda x : x ** 2, frequencies))
     
 
-    def get_majority_vote(self, subset):
+    def get_majority_vote(self, subset, target_name):
         # get the majority vote from a subset of the dataset
-        pass
+        zero = len(subset['grade']) - sum(subset['grade'])
+        one = sum(subset['grade'])
+        if (one > zero):
+            return 1
+        else:
+            return 0
 
 
-    def is_pure(data, target_name):
+    def is_pure(self, data, target_name):
         # returns true if all data has the same target value
-        pass
+        if (sum(data[target_name]) == 0) or (sum(data[target_name]) == len(data[target_name])):
+            return True
+        else:
+            return False
 
     def get_best_attribute(self, data):
         # returns None if none of the attributes are good
-        if self.is_pure(data, self.target_name):
+        if self.is_pure(data, 'grade'):
             return None
-        
-        pass
+        best = 1
+        best_attr = None
+        for attr in data.columns:
+            ginis = self.gini_split(data, attr)
+            if best > ginis:
+                best = ginis
+                best_attr = attr
+        return best_attr
 
     
     def get_subset(self, data, attr):
-        left = ... # return the rows of the dataset where attribute == 1
-        right = ... # return the rows of the dataset where attribute == 0
+        left = data[data[attr] == 1] # return the rows of the dataset where attribute == 1
+        right = data[data[attr] == 0]  # return the rows of the dataset where attribute == 0
         return left, right
 
 
@@ -120,14 +139,14 @@ class SimpleDecisionTree:
 
         if node.left is None and node.right is None:
             # cast a vote
-            node.vote = self.get_majority_vote(data)
+            node.vote = self.get_majority_vote(data, self.target_name)
 
         return node
 
 
     def train(self, dataset):
-        data = self.read(dataset)
-        self.default_class = self.get_majority_vote(data)
+        data = pd.read_csv(dataset, sep='\t', header=0)
+        self.default_class = self.get_majority_vote(data, self.target_name)
         self.target_name = self.get_target_name(data)
         self.tree = self.get_node(data, self.max_depth)
 
@@ -159,3 +178,8 @@ my_decision_tree = SimpleDecisionTree(2)
 my_decision_tree.train('education_train.tsv')
 my_decision_tree.pretty_print()
 my_decision_tree.test("education_test.tsv")
+"""
+    Unclear on what some of the inputs for the functions are. However, I think I understand how this decision
+    tree thing works and if I need to create one from scratch without of library functions, I would feel
+    confident doing so.
+"""
